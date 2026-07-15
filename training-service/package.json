@@ -1,0 +1,20 @@
+{
+  "name": "training-service",
+  "version": "1.0.0",
+  "description": "Service de gestion des formations (remplace Moodle) — Node.js",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "sequelize": "^6.37.3",
+    "mysql2": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

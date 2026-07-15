@@ -1,0 +1,124 @@
+services:
+  # ============ BASE DE DONNÉES — API PYTHON (RH + Achat/Vente) ============
+  db-api:
+    image: mysql:8.0
+    container_name: db-api
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: hr_gestion
+      MYSQL_USER: hruser
+      MYSQL_PASSWORD: hrpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_api_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ============ API PYTHON (FastAPI) ============
+  python-api:
+    build:
+      context: ./python-api
+      dockerfile: Dockerfile
+    container_name: python-api
+    restart: unless-stopped
+    depends_on:
+      db-api:
+        condition: service_healthy
+    environment:
+      DB_HOST: db-api
+      DB_PORT: 3306
+      DB_NAME: hr_gestion
+      DB_USER: hruser
+      DB_PASSWORD: hrpass
+      JWT_SECRET: change_this_secret_in_production
+      TRAINING_SERVICE_URL: http://training-service:5000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./python-api:/app
+    networks:
+      - app-network
+
+  # ============ BASE DE DONNÉES — TRAINING SERVICE ============
+  db-training:
+    image: mysql:8.0
+    container_name: db-training
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: training_db
+      MYSQL_USER: traininguser
+      MYSQL_PASSWORD: trainingpass
+    ports:
+      - "3308:3306"
+    volumes:
+      - db_training_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ============ TRAINING SERVICE (Node.js — remplace Moodle) ============
+  training-service:
+    build:
+      context: ./training-service
+      dockerfile: Dockerfile
+    container_name: training-service
+    restart: unless-stopped
+    depends_on:
+      db-training:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 5000
+      DB_HOST: db-training
+      DB_PORT: 3306
+      DB_NAME: training_db
+      DB_USER: traininguser
+      DB_PASSWORD: trainingpass
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./training-service:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+  # ============ FRONTEND (Vue.js) ============
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    depends_on:
+      - python-api
+      - training-service
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_TRAINING_URL: http://localhost:5000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db_api_data:
+  db_training_data:
