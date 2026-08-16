@@ -1,4 +1,4 @@
-# Enterprise App — RH & Achat/Vente (stage 2ème année Licence)
+# Synco — RH & Achat/Vente (stage 2ème année Licence)
 
 Architecture microservices : **Python (FastAPI)** pour l'API métier RH + Achat/Vente, **Node.js** pour le service de formation (remplace Moodle), **Vue.js** pour le frontend.
 
@@ -89,7 +89,7 @@ L'interface Vue ne propose pas d'inscription (par sécurité). Crée le premier 
 ```bash
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@entreprise.local","password":"AdminPass123!","role":"admin"}'
+  -d '{"email":"admin@entreprise.com","password":"AdminPass123!","role":"admin"}'
 ```
 Puis connecte-toi sur http://localhost:5173 avec ces identifiants.
 
@@ -106,18 +106,28 @@ curl http://localhost:5000/api/health
 # Créer un compte admin
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@entreprise.local","password":"AdminPass123!","role":"admin"}'
+  -d '{"email":"admin@entreprise.com","password":"AdminPass123!","role":"admin"}'
 
 # Se connecter → récupère un token JWT
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@entreprise.local","password":"AdminPass123!"}'
+  -d '{"email":"admin@entreprise.com","password":"AdminPass123!"}'
 
 # Créer un employé (avec le token)
 curl -X POST http://localhost:8000/api/employees/ \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer VOTRE_TOKEN" \
-  -d '{"first_name":"Amal","last_name":"Nefzaoui","email":"amal@entreprise.local"}'
+  -d '{"first_name":"Amal","last_name":"Nefzaoui","email":"amal@entreprise.com"}'
+
+# Créer un compte RH
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"rh@synco.tn","password":"RhPass123!","role":"rh"}'
+
+# Créer un compte Manager (Achat/Vente)
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"achatvente@synco.tn","password":"AvPass123!","role":"manager"}'
 
 # Créer une formation (training-service)
 curl -X POST http://localhost:5000/api/courses \
@@ -127,19 +137,26 @@ curl -X POST http://localhost:5000/api/courses \
 
 ## Rôles & permissions (API Python)
 
-3 rôles : `admin`, `manager`, `employee`.
+4 rôles : `admin` (tout), `rh` (RH uniquement), `manager` (Achat/Vente uniquement), `employee` (accès basique).
 
 | Route | Rôle requis |
 |---|---|
-| POST /api/employees | admin |
-| PUT /api/employees/:id | admin, manager |
-| DELETE /api/employees/:id | admin |
-| PATCH /api/leaves/:id/status | admin, manager |
+| POST /api/employees | admin, rh |
+| PUT /api/employees/:id | admin, rh |
+| DELETE /api/employees/:id | admin, rh |
+| PATCH /api/leaves/:id/status | admin, rh |
+| GET /api/leaves | filtré automatiquement pour `employee` (ses propres congés uniquement) |
+| GET /api/attendance/report | filtré automatiquement pour `employee` (son propre pointage uniquement) |
+| POST/PUT/DELETE /api/products | admin, manager |
+| PATCH /api/products/:id/stock | admin, manager |
+| POST/PUT/DELETE /api/suppliers, /customers | admin, manager |
 | PATCH /api/purchase-orders/:id/status | admin, manager |
 | PATCH /api/sales-orders/:id/status | admin, manager |
 | POST/PATCH /api/invoices | admin, manager |
 
-Toutes les autres routes sont ouvertes (à restreindre selon les besoins réels).
+Le frontend masque aussi les menus/pages selon le rôle (RH et Achat/Vente sont mutuellement invisibles), et le routeur Vue bloque l'accès direct par URL.
+
+**Limite connue** : les routes GET (lecture) de produits/fournisseurs/clients/commandes/factures ne sont pas protégées côté API (accessibles via `/docs` même sans le bon rôle) — seule l'interface les masque.
 
 ## Logique métier clé
 
@@ -179,7 +196,9 @@ Toutes les autres routes sont ouvertes (à restreindre selon les besoins réels)
 ## Prochaines étapes
 
 1. ~~Frontend Vue.js~~ ✅ fait (12 vues : Dashboard, RH, Achat/Vente, Formations)
-2. **Restriction fine** : un `employee` ne voit que ses propres données (filtrer par `employee_id` du token)
-3. **Migrations Alembic** (Python) au lieu de `create_all` pour la gestion de schéma en production
-4. **Rapports** : export PDF/Excel
-5. **Page d'inscription** (actuellement via curl/`/docs` uniquement, par sécurité)
+2. ~~Restriction fine par rôle~~ ✅ fait (backend filtre par `employee_id`, frontend masque les menus, routeur bloque les URLs directes)
+3. **Sécuriser les routes GET** Achat/Vente et RH (actuellement lisibles via `/docs` sans restriction de rôle, seule l'UI les masque)
+4. **Migrations Alembic** (Python) au lieu de `create_all` pour la gestion de schéma en production
+5. **Rapports** : export PDF/Excel
+6. **Page d'inscription** (actuellement via curl/`/docs` uniquement, par sécurité)
+7. **Authentification sur le training-service** (Node.js) — actuellement 100% ouvert, sans vérification de token
