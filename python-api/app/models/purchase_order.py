@@ -1,4 +1,5 @@
 import enum
+from datetime import date as date_type
 from sqlalchemy import Column, Integer, String, Date, Numeric, Enum, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 
@@ -17,7 +18,7 @@ class PurchaseOrder(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=False)
-    order_date = Column(Date, server_default=func.now())
+    order_date = Column(Date, default=date_type.today)
     expected_date = Column(Date, nullable=True)
     status = Column(Enum(PurchaseOrderStatus), default=PurchaseOrderStatus.brouillon)
     total_amount = Column(Numeric(10, 2), default=0)

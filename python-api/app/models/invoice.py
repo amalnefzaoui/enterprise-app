@@ -1,4 +1,5 @@
 import enum
+from datetime import date as date_type
 from sqlalchemy import Column, Integer, String, Date, Numeric, Enum, DateTime, func
 
 from app.database import Base
@@ -23,7 +24,7 @@ class Invoice(Base):
     type = Column(Enum(InvoiceType), nullable=False)
     reference_order_id = Column(Integer, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
-    issue_date = Column(Date, server_default=func.now())
+    issue_date = Column(Date, default=date_type.today)
     due_date = Column(Date, nullable=True)
     status = Column(Enum(InvoiceStatus), default=InvoiceStatus.impayee)
 

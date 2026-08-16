@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environnements Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+.venv/
+
+# Variables d'environnement (secrets)
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Build
+dist/
+build/
+**/dist/
+
+# Logs
+*.log
+npm-debug.log*
+debug.log
+
+# Docker
+*.pid
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Fichiers temporaires
+*.tmp
+*.bak
