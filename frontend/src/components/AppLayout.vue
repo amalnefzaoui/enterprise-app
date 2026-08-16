@@ -18,7 +18,7 @@
 
       <nav class="nav-group">
         <div class="nav-label">Ressources Humaines</div>
-        <RouterLink to="/employees" class="nav-link" active-class="nav-link-active">
+        <RouterLink v-if="canManageRH" to="/employees" class="nav-link" active-class="nav-link-active">
           <span class="nav-dot" /> Employés
         </RouterLink>
         <RouterLink to="/leaves" class="nav-link" active-class="nav-link-active">
@@ -35,7 +35,7 @@
         </RouterLink>
       </nav>
 
-      <nav class="nav-group">
+      <nav v-if="canManageAchatVente" class="nav-group">
         <div class="nav-label">Achat / Vente</div>
         <RouterLink to="/products" class="nav-link" active-class="nav-link-active">
           <span class="nav-dot" /> Produits &amp; Stock
@@ -89,6 +89,9 @@ const initials = computed(() => {
   const email = auth.user?.email || '?'
   return email.slice(0, 2).toUpperCase()
 })
+
+const canManageRH = computed(() => ['admin', 'rh'].includes(auth.role))
+const canManageAchatVente = computed(() => ['admin', 'manager'].includes(auth.role))
 
 function handleLogout() {
   auth.logout()

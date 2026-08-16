@@ -9,16 +9,20 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state) => !!state.token,
-    role: (state) => state.user?.role || null
+    role: (state) => state.user?.role || null,
+    employeeId: (state) => state.user?.employee_id || null
   },
 
   actions: {
     async login(email, password) {
       const { data } = await api.post('/api/auth/login', { email, password })
       this.token = data.token
-      this.user = data.user
       localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+
+      // Récupère les infos complètes (dont employee_id) via /me
+      const me = await api.get('/api/auth/me')
+      this.user = { ...data.user, employee_id: me.data.employee_id }
+      localStorage.setItem('user', JSON.stringify(this.user))
     },
 
     async register(email, password, role = 'employee') {

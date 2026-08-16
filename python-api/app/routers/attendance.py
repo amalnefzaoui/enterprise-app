@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models.attendance import Attendance, AttendanceStatus
 from app.schemas.attendance import AttendanceAction, AttendanceOut
 from app.auth.dependencies import get_current_user
+from app.schemas.auth import CurrentUser
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
@@ -59,6 +60,7 @@ def attendance_report(
     month: int | None = None,
     year: int | None = None,
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     today = date_type.today()
     y = year or today.year
@@ -70,7 +72,13 @@ def attendance_report(
     end = date_type(y, m, last_day)
 
     query = db.query(Attendance).filter(Attendance.date.between(start, end))
-    if employee_id:
+
+    if current_user.role == "employee":
+        if not current_user.employee_id:
+            return []
+        query = query.filter(Attendance.employee_id == current_user.employee_id)
+    elif employee_id:
         query = query.filter(Attendance.employee_id == employee_id)
 
     return query.order_by(Attendance.date.asc()).all()
+    

@@ -6,7 +6,8 @@ from app.database import get_db
 from app.models.leave import Leave, LeaveType, LeaveStatus
 from app.models.employee import Employee
 from app.schemas.leave import LeaveCreate, LeaveStatusUpdate, LeaveOut
-from app.auth.dependencies import require_role
+from app.auth.dependencies import require_role, get_current_user
+from app.schemas.auth import CurrentUser
 
 router = APIRouter(prefix="/api/leaves", tags=["leaves"])
 
@@ -27,12 +28,20 @@ def list_leaves(
     status_filter: str | None = None,
     employee_id: int | None = None,
     db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
 ):
     query = db.query(Leave)
     if status_filter:
         query = query.filter(Leave.status == status_filter)
-    if employee_id:
+
+    if current_user.role == "employee":
+        # Un employé ne voit que ses propres congés, quel que soit le paramètre envoyé
+        if not current_user.employee_id:
+            return []
+        query = query.filter(Leave.employee_id == current_user.employee_id)
+    elif employee_id:
         query = query.filter(Leave.employee_id == employee_id)
+
     return query.order_by(Leave.created_at.desc()).all()
 
 

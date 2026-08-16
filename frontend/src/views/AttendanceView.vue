@@ -11,7 +11,7 @@
         <div class="form-row checkin-row">
           <div class="form-group">
             <label>Employé</label>
-            <select v-model="selectedEmployee">
+            <select v-model="selectedEmployee" :disabled="isEmployeeRole">
               <option disabled value="">Choisir un employé</option>
               <option v-for="emp in employees" :key="emp.id" :value="emp.id">
                 {{ emp.first_name }} {{ emp.last_name }}
@@ -51,10 +51,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 import StatusPill from '../components/StatusPill.vue'
 import { statusTone } from '../utils/statusTones'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
+const isEmployeeRole = computed(() => auth.role === 'employee')
 
 const employees = ref([])
 const report = ref([])
@@ -73,6 +77,10 @@ async function loadData() {
   ])
   employees.value = employeesRes.data
   report.value = reportRes.data
+
+  if (isEmployeeRole.value && auth.employeeId) {
+    selectedEmployee.value = auth.employeeId
+  }
 }
 
 async function checkIn() {

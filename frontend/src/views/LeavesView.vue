@@ -17,7 +17,7 @@
           <div class="form-row">
             <div class="form-group">
               <label>Employé</label>
-              <select v-model="form.employee_id" required>
+              <select v-model="form.employee_id" required :disabled="isEmployeeRole">
                 <option disabled value="">Choisir un employé</option>
                 <option v-for="emp in employees" :key="emp.id" :value="emp.id">
                   {{ emp.first_name }} {{ emp.last_name }}
@@ -69,7 +69,7 @@
             <td>{{ lv.start_date }} → {{ lv.end_date }}</td>
             <td>{{ lv.days_count }}</td>
             <td><StatusPill :label="lv.status" :tone="statusTone(lv.status)" /></td>
-            <td v-if="lv.status === 'en_attente'">
+            <td v-if="lv.status === 'en_attente' && canApprove">
               <div class="flex gap-8">
                 <button class="btn btn-primary btn-sm" @click="updateStatus(lv.id, 'approuvé')">Approuver</button>
                 <button class="btn btn-danger btn-sm" @click="updateStatus(lv.id, 'refusé')">Refuser</button>
@@ -84,10 +84,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 import StatusPill from '../components/StatusPill.vue'
 import { statusTone } from '../utils/statusTones'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
+const isEmployeeRole = computed(() => auth.role === 'employee')
+const canApprove = computed(() => ['admin', 'rh'].includes(auth.role))
 
 const leaves = ref([])
 const employees = ref([])
@@ -109,6 +114,10 @@ async function loadData() {
   ])
   leaves.value = leavesRes.data
   employees.value = employeesRes.data
+
+  if (isEmployeeRole.value && auth.employeeId) {
+    form.value.employee_id = auth.employeeId
+  }
 }
 
 async function handleCreate() {
